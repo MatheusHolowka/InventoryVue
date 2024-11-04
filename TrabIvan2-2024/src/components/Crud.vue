@@ -2,8 +2,8 @@
   <div>
     <v-container>
       <v-data-table-server
-        v-model="itemsPerPage"
-        :headers="headers"
+        v-model:items-per-page="itemsPerPage"
+        :headers:="headers"
         :items="serverItems"
         :items-length="totalItems"
         :loading="loading"
@@ -11,6 +11,7 @@
         item-value="name"
         @update:options="loadItems"
       >
+        <!-- Toolbar com campo de busca e botão de adicionar -->
         <template v-slot:top>
           <v-toolbar flat>
             <v-toolbar-title>Controle de Estoque</v-toolbar-title>
@@ -19,7 +20,7 @@
             </v-toolbar-items>
           </v-toolbar>
           <v-container>
-            <!-- Bloqueia o campo de pesquisa quando uma ação está em andamento -->
+            <!-- Campo de pesquisa -->
             <v-text-field
               v-model="searchName"
               label="Pesquisar..."
@@ -29,7 +30,7 @@
           </v-container>
         </template>
 
-        <!-- Define o slot para os botões de ação -->
+        <!-- Botões de ação -->
         <template v-slot:item.action="{ item }">
           <v-btn icon="mdi-pencil" @click="editItem(item)" class="mr-2" />
           <v-btn icon="mdi-delete" @click="remove(item.uuid)" />
@@ -38,7 +39,6 @@
       </v-data-table-server>
     </v-container>
 
-    <!-- Diálogo de Edição/Adição -->
     <!-- Diálogo de Edição/Adição -->
     <v-dialog v-model="dialog" max-width="600">
       <v-card>
@@ -72,22 +72,9 @@
         <v-card-title>Visualizar Item</v-card-title>
         <v-card-text>
           <v-text-field label="Nome" v-model="inventoryItem.name" disabled />
-          <v-text-field
-            label="Descrição"
-            v-model="inventoryItem.description"
-            disabled
-          />
-          <v-text-field
-            label="Quantidade"
-            v-model="inventoryItem.quantity"
-            disabled
-          />
-          <v-text-field
-            label="Preço"
-            v-model="inventoryItem.price"
-            disabled
-            prefix="R$"
-          />
+          <v-text-field label="Descrição" v-model="inventoryItem.description" disabled />
+          <v-text-field label="Quantidade" v-model="inventoryItem.quantity" disabled />
+          <v-text-field label="Preço" v-model="inventoryItem.price" disabled prefix="R$" />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -125,20 +112,15 @@ const loadItems = async (options) => {
     page.value = options.page ?? 1;
     sortBy.value = options.sortBy ?? [];
 
-    // Ordenação
     if (sortBy.value.length > 0) {
       url += `sortKey=${sortBy.value[0].key}&sortOrder=${sortBy.value[0].order}&`;
     }
 
-    // Pesquisa
     if (options.search?.length > 0) {
       url += `search=${options.search}&`;
     }
 
-    // Paginação
-    url += `page=${page.value}&limit=${
-      options.itemsPerPage ?? itemsPerPage.value
-    }`;
+    url += `page=${page.value}&limit=${options.itemsPerPage ?? itemsPerPage.value}`;
   } else {
     url += `page=1&limit=${itemsPerPage.value}`;
   }
@@ -147,16 +129,12 @@ const loadItems = async (options) => {
     const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error(
-        `Erro ${response.status}: Não foi possível carregar os itens`
-      );
+      throw new Error(`Erro ${response.status}: Não foi possível carregar os itens`);
     }
 
     const result = await response.json();
-
-    // Preservar o UUID nos dados para operações, sem remover
     serverItems.value = result.data.map((item) => ({
-      ...item, // Mantém todos os campos, incluindo o uuid
+      ...item,
     }));
     totalItems.value = result.total || 0;
   } catch (error) {
@@ -210,12 +188,12 @@ const save = () => {
     .catch((error) => console.error(error));
 };
 
+// Função para editar item
 const editItem = async (item) => {
-  try {
-    // Fechar ambos os diálogos antes de abrir o desejado
-    dialog.value = false;
-    dialogRead.value = false;
+  dialog.value = false;
+  dialogRead.value = false;
 
+  try {
     const response = await fetch(`http://localhost:5000/inventory/${item.uuid}`);
 
     if (!response.ok) {
@@ -225,24 +203,24 @@ const editItem = async (item) => {
     const data = await response.json();
     inventoryItem.value = data[0] || {};
 
-    // Abrir o diálogo de edição
     dialog.value = true;
   } catch (error) {
     console.error("Erro ao carregar o item para edição:", error.message);
   }
 };
+
 // Função para adicionar item
 const addItem = () => {
   inventoryItem.value = {};
   dialog.value = true;
 };
 
+// Função para visualizar item
 const readItem = async (item) => {
-  try {
-    // Fechar ambos os diálogos antes de abrir o desejado
-    dialog.value = false;
-    dialogRead.value = false;
+  dialog.value = false;
+  dialogRead.value = false;
 
+  try {
     const response = await fetch(`http://localhost:5000/inventory/${item.uuid}`);
 
     if (!response.ok) {
@@ -252,7 +230,6 @@ const readItem = async (item) => {
     const data = await response.json();
     inventoryItem.value = data[0] || {};
 
-    // Abrir o diálogo de visualização
     dialogRead.value = true;
   } catch (error) {
     console.error("Erro ao carregar o item para visualização:", error.message);
